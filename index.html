@@ -398,13 +398,14 @@
     <!-- Incluir bibliotecas necessárias -->
     <script src="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.17/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
     
     <script>
-        // Configurações - Chave API interna
-        const GEMINI_API_KEY = ${{ secrets.GIT_KEY }};
-        const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
-        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-        const ALLOWED_TYPES = ['pdf', 'docx'];
+        // Variáveis de configuração (serão carregadas do YAML)
+        let GEMINI_API_KEY = '';
+        let GEMINI_API_URL = '';
+        let MAX_FILE_SIZE = 10 * 1024 * 1024; // Valor padrão
+        let ALLOWED_TYPES = ['pdf', 'docx']; // Valores padrão
 
         // Rubrica de avaliação
         const rubrica = {
@@ -415,9 +416,9 @@
                 "Em fase inicial": "O Professor selecionou: as expectativas de aprendizagem. que não estão de acordo com o Mapa de Progressão."
             },
             "EVIDENCIAS DE APRENDIZAGEM": {
-                "Realizado com êxito": "As evidências de aprendizagem: estão conectadas com as expectativas de aprendizagem; deixam claro o que os estudantes demonstrarão sobre a aprendizagem; promovem a autonomia dos estudantes; incentivam a transferibilidade.",
-                "Realizado": "As evidências de aprendizagem: estão conectadas com as expectativas de aprendizagem; deixam claro o que os estudantes demonstrarão sobre a aprendizagem; promovem a autonomia dos estudantes.",
-                "Em desenvolvimento": "As evidências de aprendizagem: estão parcialmente conectadas com as expectativas de aprendizagem; descrevem o que o Professor irá desenvolver; não promovem a autonomia dos estudantes.",
+                "Realizado com êxito": "As evidências de aprendizagem: estão conectadas dengan as expectativas de aprendizagem; deixam claro o que os estudantes demonstrarão sobre a aprendizagem; promovem a autonomia dos estudantes; incentivam a transferibilidade.",
+                "Realizado": "As evidências de aprendizagem: estão conectadas dengan as expectativas de aprendizagem; deixam claro o que os estudantes demonstrarão sobre a aprendizagem; promovem a autonomia dos estudantes.",
+                "Em desenvolvimento": "As evidências de aprendizagem: estão parcialmente conectadas dengan as expectativas de aprendizagem; descrevem o que o Professor irá desenvolver; não promovem a autonomia dos estudantes.",
                 "Em fase inicial": "As evidências de aprendizagem: não foram contempladas em consonância com as expectativas de aprendizagem, descrevem as ações do Professor."
             },
             "SEQUÊNCIA DIDÁTICA": {
@@ -435,7 +436,7 @@
             "RECURSOS DIDÁTICOS": {
                 "Realizado com êxito": "Os recursos didáticos: são condizentes às experiências de aprendizagem; são diversificados e atrativos; incentivam a ação dos estudantes; possibilitam a aprendizagem significativa.",
                 "Realizado": "Os recursos didáticos: são condizentes às experiências de aprendizagem; são diversificados e atrativos; incentivam a ação dos estudantes.",
-                "Em desenvolvimento": "Os recursos didáticos: são condizentes às experiências de aprendizagem; são pouco diversificados e atrativos.",
+                "Em desenvolvimento": "Os recursos didáticos: são condizentes às experiências de aprendizagem; são pouco diversificados and atrativos.",
                 "Em fase inicial": "Os recursos didáticos: pouco condizem às experiências de aprendizagem; estão contemplados em pouca quantidade."
             },
             "AVALIAÇÃO": {
@@ -474,13 +475,44 @@
         const analiseTexto = document.getElementById('analise-texto');
 
         // Inicializar a aplicação
-        document.addEventListener('DOMContentLoaded', function() {
-            // Configurar o manipulador de envio do formulário
-            formUpload.addEventListener('submit', handleFormSubmit);
-            
-            // Configurar PDF.js worker
-            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Carregar configurações do YAML
+            try {
+                await loadConfig();
+                
+                // Configurar o manipulador de envio do formulário
+                formUpload.addEventListener('submit', handleFormSubmit);
+                
+                // Configurar PDF.js worker
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
+            } catch (error) {
+                showError('Erro ao carregar configurações: ' + error.message);
+            }
         });
+
+        // Carregar configurações do arquivo YAML
+        async function loadConfig() {
+            try {
+                const response = await fetch('config.yml');
+                if (!response.ok) {
+                    throw new Error('Não foi possível carregar o arquivo de configuração');
+                }
+                
+                const yamlText = await response.text();
+                const config = jsyaml.load(yamlText);
+                
+                // Definir variáveis de configuração
+                GEMINI_API_KEY = config.gemini.api_key;
+                GEMINI_API_URL = config.gemini.api_url;
+                MAX_FILE_SIZE = config.app.max_file_size;
+                ALLOWED_TYPES = config.app.allowed_types;
+                
+                console.log('Configurações carregadas com sucesso');
+            } catch (error) {
+                console.error('Erro ao carregar configurações:', error);
+                throw error;
+            }
+        }
 
         // Manipular envio do formulário
         async function handleFormSubmit(e) {
@@ -794,5 +826,3 @@
     </script>
 </body>
 </html>
-
-
