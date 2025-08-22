@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisador de Planejamento de Aula com Gemini</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 2.2rem;
+        }
+
+        h2 {
+            color: #3498db;
+            margin: 25px 0 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+            font-size: 1.8rem;
+        }
+
+        .upload-form {
+            background: #f9f9f9;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 25px 0;
+            border: 1px solid #e0e0e0;
+        }
+
+        .upload-form.disabled {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        input[type="file"],
+        input[type="password"],
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="file"]:focus,
+        input[type="password"]:focus,
+        input[type="text"]:focus {
+            border-color: #3498db;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        small {
+            display: block;
+            margin-top: 5px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .btn-analisar {
+            background: linear-gradient(to right, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 14px 25px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            display: block;
+            width: 100%;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(52, 152, 219, 0.2);
+        }
+
+        .btn-analisar:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        .erro {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #c62828;
+        }
+
+        .carregando {
+            text-align: center;
+            padding: 30px;
+            margin: 30px 0;
+            background: #e3f2fd;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .carregando p {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .info {
+            background: #e3f2fd;
+            padding: 25px;
+            border-radius: 12px;
+            border-left: 5px solid #3498db;
+        }
+
+        .info ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        .info li {
+            margin-bottom: 10px;
+            padding-left: 5px;
+        }
+
+        .arquivo-nome {
+            font-size: 18px;
+            margin-bottom: 25px;
+            text-align: center;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+
+        .resultado-analise {
+            margin: 30px 0;
+        }
+
+        .analise-texto {
+            background: #f9f9f9;
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid #eee;
+            line-height: 1.8;
+            font-size: 16px;
+        }
+
+        .analise-texto h3 {
+            color: #2c3e50;
+            margin: 20px 0 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #3498db;
+        }
+
+        .analise-texto h3:first-child {
+            margin-top: 0;
+        }
+
+        .analise-texto p {
+            margin-bottom: 15px;
+        }
+
+        .analise-texto strong {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .analise-texto ul, .analise-texto ol {
+            margin: 10px 0 15px 20px;
+        }
+
+        .analise-texto li {
+            margin-bottom: 8px;
+        }
+
+        .acoes {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .btn-nova-analise {
+            display: inline-block;
+            background: linear-gradient(to right, #2ecc71, #27ae60);
+            color: white;
+            text-decoration: none;
+            padding: 14px 25px;
+            border-radius: 6px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(46, 204, 113, 0.2);
+        }
+
+        .btn-nova-analise:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(46, 204, 113, 0.3);
+        }
+
+        /* Modal de loading */
+        .modal-loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-content h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress {
+            height: 100%;
+            background: linear-gradient(to right, #3498db, #2980b9);
+            border-radius: 4px;
+            width: 0%;
+            animation: progressAnimation 2s infinite;
+        }
+
+        @keyframes progressAnimation {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+
+        /* Estilos específicos da página de resultado */
+        .nivel-avaliacao {
+            background-color: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #2980b9;
+        }
+
+        .analise-texto h4 {
+            color: #2c3e50;
+            margin: 25px 0 12px;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        .analise-texto ul {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+
+        .analise-texto li {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            border-left: 3px solid #3498db;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            h2 {
+                font-size: 1.5rem;
+            }
+            
+            .upload-form, .info {
+                padding: 20px;
+            }
+            
+            .analise-texto {
+                padding: 20px;
+            }
+            
+            .analise-texto ul {
+                padding-left: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Modal de Loading -->
+    <div id="modal-loading" class="modal-loading">
+        <div class="modal-content">
+            <h2>Analisando seu planejamento</h2>
+            <p>Estamos processando seu arquivo e analisando com o Gemini. Isso pode levar alguns instantes...</p>
+            <div class="progress-bar">
+                <div class="progress"></div>
+            </div>
+            <p>Por favor, aguarde enquanto geramos seu relatório.</p>
+        </div>
+    </div>
+
+    <div id="app" class="container">
+        <!-- Página inicial -->
+        <div id="index-page">
+            <h1>Analisador de Planejamento de Aula</h1>
+            <p>Faça o upload do seu planejamento de aula (PDF ou DOCX) para receber feedback baseado na rubrica educacional.</p>
+            
+            <div id="erro" class="erro" style="display: none;"></div>
+            
+            <form id="form-upload" class="upload-form">
+                <div class="form-group">
+                    <label for="arquivo">Selecione o arquivo (PDF ou DOCX):</label>
+                    <input type="file" id="arquivo" name="arquivo" accept=".pdf,.docx" required>
+                    <small>Tamanho máximo: 10MB</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="api-key">Chave da API Gemini (opcional):</label>
+                    <input type="password" id="api-key" name="api-key" placeholder="Se você tiver sua própria chave API, insira aqui">
+                    <small>Se não preencher, usará a chave padrão (pode ter limites de uso)</small>
+                </div>
+                
+                <button type="submit" class="btn-analisar">Analisar Planejamento</button>
+            </form>
+            
+            <div class="info">
+                <h2>Sobre a análise</h2>
+                <p>Seu planejamento será analisado com base nos seguintes critérios:</p>
+                <ul>
+                    <li>Expectativas de Aprendizagem</li>
+                    <li>Evidências de Aprendizagem</li>
+                    <li>Sequência Didática</li>
+                    <li>Atividades Permanentes</li>
+                    <li>Recursos Didáticos</li>
+                    <li>Avaliação</li>
+                    <li>Recomposição (Aprendizagem)</li>
+                    <li>Recuperação de Notas</li>
+                    <li>Adaptações/Adequações/Enriquecimento Curricular</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Página de resultado (inicialmente oculta) -->
+        <div id="result-page" style="display: none;">
+            <h1>Resultado da Análise</h1>
+            <p id="arquivo-nome" class="arquivo-nome"></p>
+            
+            <div class="resultado-analise">
+                <h2>Feedback do Gemini</h2>
+                <div id="analise-texto" class="analise-texto"></div>
+            </div>
+            
+            <div class="acoes">
+                <button onclick="showIndexPage()" class="btn-nova-analise">Fazer Nova Análise</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Incluir bibliotecas necessárias -->
+    <script src="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.17/mammoth.browser.min.js"></script>
+    
+    <script>
+        // Configurações
+        const GEMINI_API_KEY = 'AIzaSyDOeXXKeFlkPnsrwBcDgNrudxihI4muk5w'; // Chave padrão
+        const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+        const ALLOWED_TYPES = ['pdf', 'docx'];
+
+        // Rubrica de avaliação
+        const rubrica = {
+            "EXPECTATIVAS DE APRENDIZAGEM": {
+                "Realizado com êxito": "O Professor selecionou: as expectativas de aprendizagem de acordo com o Mapa de Progressão do mês, descritores do SAEB; descritores nos quais os estudantes apresentaram baixo rendimento.",
+                "Realizado": "O Professor selecionou: as expectativas de aprendizagem de acordo com o Mapa de Progressão do mês, descritores do SAEB.",
+                "Em desenvolvimento": "O Professor selecionou: as expectativas de aprendizagem de acordo com o Mapa de Progressão do mês.",
+                "Em fase inicial": "O Professor selecionou: as expectativas de aprendizagem. que não estão de acordo com o Mapa de Progressão."
+            },
+            "EVIDENCIAS DE APRENDIZAGEM": {
+                "Realizado com êxito": "As evidências de aprendizagem: estão conectadas com as expectativas de aprendizagem; deixam claro o que os estudantes demonstrarão sobre a aprendizagem; promovem a autonomia dos estudantes; incentivam a transferibilidade.",
+                "Realizado": "As evidências de aprendizagem: estão conectadas com as expectativas de aprendizagem; deixam claro o que os estudantes demonstrarão sobre a aprendizagem; promovem a autonomia dos estudantes.",
+                "Em desenvolvimento": "As evidências de aprendizagem: estão parcialmente conectadas com as expectativas de aprendizagem; descrevem o que o Professor irá desenvolver; não promovem a autonomia dos estudantes.",
+                "Em fase inicial": "As evidências de aprendizagem: não foram contempladas em consonância com as expectativas de aprendizagem, descrevem as ações do Professor."
+            },
+            "SEQUÊNCIA DIDÁTICA": {
+                "Realizado com êxito": "A sequência didática: está organizada por semana/aula; apresenta encadeamento entre uma atividade e outra; apresenta atividades planejadas pelo Professor; leva em conta o percurso de aprendizagem dos estudantes, respeitando todas as expectativas de aprendizagem.",
+                "Realizado": "A sequência didática: está organizada por semana/aula; apresenta encadeamento entre uma atividade e outra; apresenta atividades planejadas pelo Professor.",
+                "Em desenvolvimento": "A sequência didática: está organizada por semana/aula; apresenta pouco encadeamento entre uma atividade e outra; apresenta algumas atividades foram planejadas pelo Professor.",
+                "Em fase inicial": "A sequência didática: apresenta uma listagem de atividades; não apresenta encadeamento entre uma atividade e outra; não apresenta atividades planejadas pelo Professor."
+            },
+            "ATIVIDADES PERMANENTES": {
+                "Realizado com êxito": "As atividades permanentes: estão contempladas na sequência didática; evidenciam a participação dos estudantes; apresentam constância através da rotina; são desafiadoras e encorajadoras.",
+                "Realizado": "As atividades permanentes: estão contempladas na sequência didática; evidenciam a participação dos estudantes; apresentam constância e regularidade através da rotina.",
+                "Em desenvolvimento": "As atividades permanentes: estão contempladas na sequência didática; apresentam constância através da rotina.",
+                "Em fase inicial": "As atividades permanentes: estão pouco contempladas na sequência didática."
+            },
+            "RECURSOS DIDÁTICOS": {
+                "Realizado com êxito": "Os recursos didáticos: são condizentes às experiências de aprendizagem; são diversificados e atrativos; incentivam a ação dos estudantes; possibilitam a aprendizagem significativa.",
+                "Realizado": "Os recursos didáticos: são condizentes às experiências de aprendizagem; são diversificados e atrativos; incentivam a ação dos estudantes.",
+                "Em desenvolvimento": "Os recursos didáticos: são condizentes às experiências de aprendizagem; são pouco diversificados e atrativos.",
+                "Em fase inicial": "Os recursos didáticos: pouco condizem às experiências de aprendizagem; estão contemplados em pouca quantidade."
+            },
+            "AVALIAÇÃO": {
+                "Realizado com êxito": "Sobre a avaliação: identificam-se instrumentos variados e apropriados; fica claro como os estudantes irão demonstrar que compreenderam/aprenderam; os estudantes participam do processo; foram disponibilizadas rubricas ao estudante.",
+                "Realizado": "Sobre a avaliação: identificam-se instrumentos variados e apropriados; fica claro como os estudantes irão demonstrar que compreenderam/aprenderam; os estudantes participam do processo.",
+                "Em desenvolvimento": "Sobre a avaliação: identificam-se instrumentos variados e apropriados; não fica claro como os estudantes irão demonstrar que compreenderam/aprenderam.",
+                "Em fase inicial": "Sobre a avaliação: os instrumentos não foram apresentados."
+            },
+            "RECOMPOSIÇÃO (APRENDIZAGEM)": {
+                "Realizado com êxito": "A recomposição (aprendizagem): foi contemplada com propostas diferenciadas; foi condizente com as dúvidas e com a sequência didática.",
+                "Realizado": "A recomposição (aprendizagem): foi contemplada com propostas diferenciadas; foi condizente com as dúvidas dos estudantes.",
+                "Em desenvolvimento": "A recomposição (aprendizagem): foi contemplada de acordo com as dúvidas dos estudantes. A recuperação (notas):",
+                "Em fase inicial": "A recomposição (aprendizagem): não foi contemplada. A recuperação (notas):"
+            },
+            "RECUPERAÇÃO NOTAS": {
+                "Realizado com êxito": "A recuperação (notas): foi ofertada após la recomposição, empregou instrumentos apropriados e diferenciados.",
+                "Realizado": "A recuperação (notas): foi ofertada após la recomposição: empregou instrumentos apropriados.",
+                "Em desenvolvimento": "A recuperação (notas): foi ofertada após ao final do trimestre.",
+                "Em fase inicial": "A recuperação (notas): foi ofertada ao final do trimestre com um único instrumento."
+            },
+            "ADAPTAÇÕES/ADEQUAÇÕES/ENRIQUECIMENTO CURRICULAR": {
+                "Realizado com êxito": "As adaptações/adequações às experiências de aprendizagem foram planejadas de acordo com o desenho universal de aprendizagem (DUA), considerando as características de aprendizagem de cada estudante (com deficiência, transtornos globais de desenvolvimento ou defasagem). Há proposta de enriquecimento curricular através de atividades/portfólio/projetos para estudantes com altas habilidades/superdotação.",
+                "Realizado": "As adaptações/adequações às experiencias de aprendizagem foram planejadas de acordo com as especificidades de cada grupo de estudantes (com deficiência, com transtornos globais de desenvolvimento, em defasagem). Há proposta de enriquecimento curricular através de atividades/projetos para estudantes com altas habilidades/superdotação.",
+                "Em desenvolvimento": "As adaptações/adequações às experiências de aprendizagem foram planejadas de forma genérica. Há poucas propostas de enriquecimento curricular para estudantes com altas habilidades/superdotação.",
+                "Em fase inicial": "As adaptações/adequações às experiências de aprendizagem foram planejadas de forma genérica. Não há propostas de enriquecimento curricular para estudantes com altas habilidades/superdotação."
+            }
+        };
+
+        // Elementos DOM
+        const formUpload = document.getElementById('form-upload');
+        const loadingModal = document.getElementById('modal-loading');
+        const erroDiv = document.getElementById('erro');
+        const indexPage = document.getElementById('index-page');
+        const resultPage = document.getElementById('result-page');
+        const arquivoNome = document.getElementById('arquivo-nome');
+        const analiseTexto = document.getElementById('analise-texto');
+
+        // Inicializar a aplicação
+        document.addEventListener('DOMContentLoaded', function() {
+            // Configurar o manipulador de envio do formulário
+            formUpload.addEventListener('submit', handleFormSubmit);
+            
+            // Configurar PDF.js worker
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
+        });
+
+        // Manipular envio do formulário
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('arquivo');
+            const apiKeyInput = document.getElementById('api-key');
+            const file = fileInput.files[0];
+            
+            // Validar arquivo
+            const error = validateFile(file);
+            if (error) {
+                showError(error);
+                return;
+            }
+            
+            // Obter chave API (usar a do usuário se fornecida, senão a padrão)
+            const apiKey = apiKeyInput.value.trim() || GEMINI_API_KEY;
+            
+            // Mostrar loading
+            showLoading();
+            
+            try {
+                // Extrair texto do arquivo
+                const texto = await extractTextFromFile(file);
+                
+                // Chamar API do Gemini
+                const analise = await callGeminiAPI(texto, apiKey);
+                
+                // Exibir resultados
+                showResults(file.name, analise);
+            } catch (error) {
+                showError('Erro: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Validar arquivo
+        function validateFile(file) {
+            if (!file) {
+                return 'Por favor, selecione um arquivo.';
+            }
+            
+            const fileType = file.name.split('.').pop().toLowerCase();
+            if (!ALLOWED_TYPES.includes(fileType)) {
+                return 'Tipo de arquivo não permitido. Apenas PDF e DOCX são aceitos.';
+            }
+            
+            if (file.size > MAX_FILE_SIZE) {
+                return `Arquivo muito grande. O tamanho máximo permitido é ${MAX_FILE_SIZE / 1024 / 1024}MB.`;
+            }
+            
+            return null;
+        }
+
+        // Extrair texto do arquivo
+        async function extractTextFromFile(file) {
+            const fileType = file.name.split('.').pop().toLowerCase();
+            
+            if (fileType === 'pdf') {
+                return await extractTextFromPDF(file);
+            } else if (fileType === 'docx') {
+                return await extractTextFromDOCX(file);
+            }
+            
+            throw new Error('Tipo de arquivo não suportado');
+        }
+
+        // Extrair texto de PDF
+        async function extractTextFromPDF(file) {
+            return new Promise((resolve, reject) => {
+                const fileReader = new FileReader();
+                
+                fileReader.onload = async function() {
+                    try {
+                        const typedArray = new Uint8Array(this.result);
+                        const pdf = await pdfjsLib.getDocument(typedArray).promise;
+                        
+                        let text = '';
+                        for (let i = 1; i <= pdf.numPages; i++) {
+                            const page = await pdf.getPage(i);
+                            const content = await page.getTextContent();
+                            text += content.items.map(item => item.str).join(' ') + '\n';
+                        }
+                        
+                        resolve(text);
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                
+                fileReader.onerror = function(error) {
+                    reject(error);
+                };
+                
+                fileReader.readAsArrayBuffer(file);
+            });
+        }
+
+        // Extrair texto de DOCX
+        async function extractTextFromDOCX(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = function(event) {
+                    const arrayBuffer = event.target.result;
+                    
+                    mammoth.extractRawText({ arrayBuffer })
+                        .then(result => resolve(result.value))
+                        .catch(error => reject(error));
+                };
+                
+                reader.onerror = function(error) {
+                    reject(error);
+                };
+                
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // Chamar API do Gemini
+        async function callGeminiAPI(texto, apiKey) {
+            // Limitar o tamanho do texto para evitar exceder os limites da API
+            texto = texto.substring(0, 30000);
+            
+            // Preparar o prompt para o Gemini com base na rubrica
+            let prompt = "Analise este planejamento de aula com base na seguinte rubrica:\n\n";
+
+            for (const [criterio, niveis] of Object.entries(rubrica)) {
+                prompt += `CRITÉRIO: ${criterio}\n`;
+                for (const [nivel, descricao] of Object.entries(niveis)) {
+                    prompt += `- ${nivel}: ${descricao}\n`;
+                }
+                prompt += "\n";
+            }
+
+            prompt += "TEXTO DO PLANEJAMENTO:\n" + texto + "\n\n";
+            prompt += "Forneça uma análise detalhada para cada critério, indicando qual nível foi alcançado e por quê. ";
+            prompt += "Organize a resposta em tópicos para cada critério da rubrica. ";
+            prompt += "Ao final, dê um feedback geral com sugestões de melhoria.";
+            prompt += "A última linha deverá ser um 'pensamento do dia'";
+            
+            // Preparar dados para a requisição
+            const dados = {
+                contents: [
+                    {
+                        parts: [
+                            {
+                                text: prompt
+                            }
+                        ]
+                    }
+                ],
+                generationConfig: {
+                    temperature: 0.7,
+                    topK: 40,
+                    topP: 0.95,
+                    maxOutputTokens: 4096,
+                }
+            };
+            
+            // Fazer a requisição para a API
+            const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(dados)
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Erro na API do Gemini: ${response.status}. Verifique sua chave de API.`);
+            }
+            
+            const respostaJson = await response.json();
+            
+            if (!respostaJson.candidates || !respostaJson.candidates[0] || !respostaJson.candidates[0].content || !respostaJson.candidates[0].content.parts[0]) {
+                throw new Error('Resposta inesperada da API do Gemini.');
+            }
+            
+            return respostaJson.candidates[0].content.parts[0].text;
+        }
+
+        // Função para formatar a análise (baseada no resultado.php)
+        function formatarTextoCorrigido(texto) {
+            // Primeiro, remover qualquer tag HTML existente para evitar duplicação
+            texto = texto.replace(/<[^>]*>/g, '');
+            
+            // Substituir entidades HTML
+            texto = texto.replace(/&quot;/g, '"');
+            
+            // Agora aplicar proteção XSS
+            texto = texto.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            
+            // Processar todos os negritos (**texto** → <strong>texto</strong>)
+            texto = texto.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            // Processar o texto limpo com a nova formatação
+            const linhas = texto.split('\n');
+            let resultado = '';
+            let emLista = false;
+            
+            for (const linha of linhas) {
+                const linhaTrim = linha.trim();
+                
+                if (!linhaTrim) {
+                    if (emLista) {
+                        resultado += "</ul>\n";
+                        emLista = false;
+                    }
+                    continue;
+                }
+                
+                // Verificar se é um critério
+                if (/^CRITÉRIO:\s*(.+)/i.test(linhaTrim)) {
+                    if (emLista) {
+                        resultado += "</ul>\n";
+                        emLista = false;
+                    }
+                    const criterio = linhaTrim.replace(/^CRITÉRIO:\s*/i, '');
+                    resultado += `<h3>${criterio}</h3>\n`;
+                }
+                // Verificar se é um nível de avaliação
+                else if (/^(Realizado com êxito|Realizado|Em desenvolvimento|Em fase inicial):\s*(.+)/i.test(linhaTrim)) {
+                    if (emLista) {
+                        resultado += "</ul>\n";
+                        emLista = false;
+                    }
+                    const matches = linhaTrim.match(/^(.*?):\s*(.+)/);
+                    if (matches) {
+                        const nivel = matches[1];
+                        const descricao = matches[2];
+                        resultado += `<div class='nivel-avaliacao'><strong>${nivel}:</strong> ${descricao}</div>\n`;
+                    }
+                }
+                // Verificar se é um item de lista
+                else if (/^\*\s+(.+)/.test(linhaTrim)) {
+                    if (!emLista) {
+                        resultado += "<ul>\n";
+                        emLista = true;
+                    }
+                    const item = linhaTrim.replace(/^\*\s+/, '');
+                    resultado += `<li>${item}</li>\n`;
+                }
+                // Verificar se é um subtítulo
+                else if (/^##\s+(.+)/.test(linhaTrim)) {
+                    if (emLista) {
+                        resultado += "</ul>\n";
+                        emLista = false;
+                    }
+                    const subtitulo = linhaTrim.replace(/^##\s+/, '');
+                    resultado += `<h4>${subtitulo}</h4>\n`;
+                }
+                // Linha normal
+                else {
+                    if (emLista) {
+                        resultado += "</ul>\n";
+                        emLista = false;
+                    }
+                    resultado += `<p>${linhaTrim}</p>\n`;
+                }
+            }
+            
+            // Fechar lista se ainda aberta
+            if (emLista) {
+                resultado += "</ul>\n";
+            }
+            
+            return resultado;
+        }
+
+        // Mostrar erro
+        function showError(mensagem) {
+            erroDiv.textContent = mensagem;
+            erroDiv.style.display = 'block';
+            
+            // Esconder erro após 5 segundos
+            setTimeout(() => {
+                erroDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Mostrar loading
+        function showLoading() {
+            if (loadingModal) {
+                loadingModal.style.display = 'flex';
+            }
+        }
+
+        // Esconder loading
+        function hideLoading() {
+            if (loadingModal) {
+                loadingModal.style.display = 'none';
+            }
+        }
+
+        // Mostrar página de resultados
+        function showResults(nomeArquivo, analise) {
+            arquivoNome.innerHTML = `Arquivo analisado: <strong>${nomeArquivo}</strong>`;
+            analiseTexto.innerHTML = formatarTextoCorrigido(analise);
+            
+            indexPage.style.display = 'none';
+            resultPage.style.display = 'block';
+        }
+
+        // Mostrar página inicial
+        function showIndexPage() {
+            resultPage.style.display = 'none';
+            indexPage.style.display = 'block';
+            
+            // Limpar formulário
+            formUpload.reset();
+        }
+    </script>
+</body>
+</html>
