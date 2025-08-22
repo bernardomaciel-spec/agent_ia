@@ -383,13 +383,13 @@
                     <input type="file" id="arquivo" name="arquivo" accept=".pdf,.docx" required>
                     <small>Tamanho máximo: 10MB</small>
                 </div>
-                
+                <!-- 
                 <div class="form-group">
                     <label for="api-key">Chave da API Gemini (opcional):</label>
                     <input type="password" id="api-key" name="api-key" placeholder="Se você tiver sua própria chave API, insira aqui">
                     <small>Se não preencher, usará a chave padrão (pode ter limites de uso)</small>
                 </div>
-                
+                -->
                 <button type="submit" class="btn-analisar">Analisar Planejamento</button>
             </form>
             
@@ -432,7 +432,6 @@
     
     <script>
         // Configurações
-        const GEMINI_API_KEY = 'AIzaSyDOeXXKeFlkPnsrwBcDgNrudxihI4muk5w'; // Chave padrão
         const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
         const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
         const ALLOWED_TYPES = ['pdf', 'docx'];
@@ -828,4 +827,5 @@
         }
     </script>
 </body>
+
 </html>
