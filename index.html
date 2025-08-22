@@ -52,11 +52,6 @@
             border: 1px solid #e0e0e0;
         }
 
-        .upload-form.disabled {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-
         .form-group {
             margin-bottom: 20px;
         }
@@ -68,9 +63,7 @@
             color: #2c3e50;
         }
 
-        input[type="file"],
-        input[type="password"],
-        input[type="text"] {
+        input[type="file"] {
             width: 100%;
             padding: 12px 15px;
             border: 1px solid #ddd;
@@ -79,9 +72,7 @@
             transition: border-color 0.3s;
         }
 
-        input[type="file"]:focus,
-        input[type="password"]:focus,
-        input[type="text"]:focus {
+        input[type="file"]:focus {
             border-color: #3498db;
             outline: none;
             box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
@@ -121,36 +112,6 @@
             border-radius: 8px;
             margin-bottom: 20px;
             border-left: 4px solid #c62828;
-        }
-
-        .carregando {
-            text-align: center;
-            padding: 30px;
-            margin: 30px 0;
-            background: #e3f2fd;
-            border-radius: 12px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-        }
-
-        .carregando p {
-            font-size: 18px;
-            margin-bottom: 20px;
-            color: #2c3e50;
-        }
-
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
         }
 
         .info {
@@ -325,6 +286,15 @@
             border-left: 3px solid #3498db;
         }
 
+        .api-info {
+            background-color: #fff8e1;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            border-left: 4px solid #ffc107;
+            font-size: 0.9em;
+        }
+
         @media (max-width: 768px) {
             body {
                 padding: 10px;
@@ -383,14 +353,13 @@
                     <input type="file" id="arquivo" name="arquivo" accept=".pdf,.docx" required>
                     <small>Tamanho máximo: 10MB</small>
                 </div>
-                <!-- 
-                <div class="form-group">
-                    <label for="api-key">Chave da API Gemini (opcional):</label>
-                    <input type="password" id="api-key" name="api-key" placeholder="Se você tiver sua própria chave API, insira aqui">
-                    <small>Se não preencher, usará a chave padrão (pode ter limites de uso)</small>
-                </div>
-                -->
+                
                 <button type="submit" class="btn-analisar">Analisar Planejamento</button>
+                
+                <div class="api-info">
+                    <strong>Informação:</strong> Esta aplicação utiliza uma chave API interna para acessar o Gemini.
+                    O uso é limitado e sujeito à disponibilidade da cota de API.
+                </div>
             </form>
             
             <div class="info">
@@ -431,7 +400,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.17/mammoth.browser.min.js"></script>
     
     <script>
-        // Configurações
+        // Configurações - Chave API interna
+        const GEMINI_API_KEY = ${{ secrets.GITHUB_TOKEN }};
         const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
         const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
         const ALLOWED_TYPES = ['pdf', 'docx'];
@@ -481,7 +451,7 @@
                 "Em fase inicial": "A recomposição (aprendizagem): não foi contemplada. A recuperação (notas):"
             },
             "RECUPERAÇÃO NOTAS": {
-                "Realizado com êxito": "A recuperação (notas): foi ofertada após la recomposição, empregou instrumentos apropriados e diferenciados.",
+                "Realizado com êxito": "A recuperação (notas): foi ofertada após a recomposição, empregou instrumentos apropriados e diferenciados.",
                 "Realizado": "A recuperação (notas): foi ofertada após la recomposição: empregou instrumentos apropriados.",
                 "Em desenvolvimento": "A recuperação (notas): foi ofertada após ao final do trimestre.",
                 "Em fase inicial": "A recuperação (notas): foi ofertada ao final do trimestre com um único instrumento."
@@ -517,7 +487,6 @@
             e.preventDefault();
             
             const fileInput = document.getElementById('arquivo');
-            const apiKeyInput = document.getElementById('api-key');
             const file = fileInput.files[0];
             
             // Validar arquivo
@@ -527,9 +496,6 @@
                 return;
             }
             
-            // Obter chave API (usar a do usuário se fornecida, senão a padrão)
-            const apiKey = apiKeyInput.value.trim() || GEMINI_API_KEY;
-            
             // Mostrar loading
             showLoading();
             
@@ -538,7 +504,7 @@
                 const texto = await extractTextFromFile(file);
                 
                 // Chamar API do Gemini
-                const analise = await callGeminiAPI(texto, apiKey);
+                const analise = await callGeminiAPI(texto);
                 
                 // Exibir resultados
                 showResults(file.name, analise);
@@ -633,7 +599,7 @@
         }
 
         // Chamar API do Gemini
-        async function callGeminiAPI(texto, apiKey) {
+        async function callGeminiAPI(texto) {
             // Limitar o tamanho do texto para evitar exceder os limites da API
             texto = texto.substring(0, 30000);
             
@@ -674,7 +640,7 @@
             };
             
             // Fazer a requisição para a API
-            const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+            const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -683,7 +649,7 @@
             });
             
             if (!response.ok) {
-                throw new Error(`Erro na API do Gemini: ${response.status}. Verifique sua chave de API.`);
+                throw new Error(`Erro na API do Gemini: ${response.status}. Tente novamente mais tarde.`);
             }
             
             const respostaJson = await response.json();
@@ -827,5 +793,4 @@
         }
     </script>
 </body>
-
 </html>
